@@ -1,7 +1,7 @@
 package com.udacity.jwdnd.course1.cloudstorage.controller;
 
-import com.udacity.jwdnd.course1.cloudstorage.entities.User;
-import com.udacity.jwdnd.course1.cloudstorage.services.UserService;
+import com.udacity.jwdnd.course1.cloudstorage.entity.User;
+import com.udacity.jwdnd.course1.cloudstorage.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Controller;
@@ -20,30 +20,31 @@ public class SignupController {
     private final UserService userService;
 
     @GetMapping
-    public String signup() {
+    public String index() {
         return "signup";
     }
 
     @PostMapping()
-    public String signupUser(@ModelAttribute User user, Model model, RedirectAttributes redirectAttributes) {
-        String signupErrorMessage = StringUtils.EMPTY;
+    public String signup(@ModelAttribute User user, Model model, RedirectAttributes redirectAttributes) {
+        String signupErrorMessage = validateUser(user);
 
-        if (userService.isExistUsername(user.getUsername())) {
-            signupErrorMessage = "The username already exists.";
-        }
-
-        if (signupErrorMessage.isEmpty()) {
-            int rowsAdded = userService.createUser(user);
-            if (rowsAdded <= 0) {
-                signupErrorMessage = "Something went wrong! Please try again.";
-            } else {
+        if (signupErrorMessage == null) {
+            if (userService.createUser(user) > 0) {
                 redirectAttributes.addFlashAttribute("signupSuccess", true);
                 return "redirect:/login";
+            } else {
+                signupErrorMessage = "Something went wrong! Please try again.";
             }
         }
 
         model.addAttribute("signupErrorMessage", signupErrorMessage);
-
         return "signup";
+    }
+
+    private String validateUser(User user) {
+        if (userService.isExistUsername(user.getUsername())) {
+            return "The username already exists.";
+        }
+        return null; // No errors
     }
 }

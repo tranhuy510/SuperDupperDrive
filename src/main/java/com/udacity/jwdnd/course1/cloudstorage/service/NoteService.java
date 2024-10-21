@@ -1,6 +1,6 @@
-package com.udacity.jwdnd.course1.cloudstorage.services;
+package com.udacity.jwdnd.course1.cloudstorage.service;
 
-import com.udacity.jwdnd.course1.cloudstorage.entities.Note;
+import com.udacity.jwdnd.course1.cloudstorage.entity.Note;
 import com.udacity.jwdnd.course1.cloudstorage.mapper.NoteMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ public class NoteService {
         return noteMapper.getNotesByUserId(userid);
     }
 
-    public void addNote(Note note, int userId){
+    public void createNote(Note note, int userId){
         Note newNote = new Note();
         newNote.setUserId(userId);
         newNote.setNoteDescription(note.getNoteDescription());

@@ -13,6 +13,7 @@ import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -57,21 +58,23 @@ class CloudStorageApplicationTests {
 
 	@Test
 	public void testUserSignupLoginLogout() throws InterruptedException {
-		// signup the user
-		doMockSignUp("HuyTQ","Test","HuyTQ","abcd1234");
-
-		// login the user
-		doLogIn("HuyTQ", "abcd1234");
+		// Sign up & login
+		signUpAndLogin("HuyTQ", "HuyTQ", "Test", "abcd1234");
 
 		// logout
 		WebElement logoutButton= driver.findElement(By.id("logout-button"));
 		logoutButton.click();
 
-		Assertions.assertFalse(driver.getTitle().equals("Home"));
+        Assertions.assertNotEquals("Home", driver.getTitle());
 		Assertions.assertEquals("Login", driver.getTitle());
 
 		Thread.sleep(3000);
 
+	}
+
+	private void signUpAndLogin(String username, String firstName, String lastName, String password) throws InterruptedException {
+		doMockSignUp(firstName, lastName, username, password);
+		doLogIn(username, password);
 	}
 
 	public void redirectToNotesTab(){
@@ -85,109 +88,136 @@ class CloudStorageApplicationTests {
 
 	@Test
 	public void createNote() throws InterruptedException {
-		// signup the user
-		doMockSignUp("HuyTQ","Test","HuyTQ","abcd1234");
+		// Sign up & login
+		signUpAndLogin("HuyTQ", "HuyTQ", "Test", "abcd1234");
 
-		// login the user
-		doLogIn("HuyTQ", "abcd1234");
+		// Navigate to the notes tab
+		openNotesTab();
 
-		// go to note-tab
-		WebElement notesTab= driver.findElement(By.id("nav-notes-tab"));
+		// Verify that the notes tab appears
+		Assertions.assertTrue(isElementVisible(By.id("nav-notes")), "Notes tab should be visible.");
+
+		// Add a new note
+		addNewNote("Test Note", "Testing create note!");
+
+		// Redirect to the notes tab and check if the note appears
+		redirectToNotesTab();
+		Assertions.assertTrue(isNotePresent("Test Note"), "The note should be present in the notes table.");
+
+		// Wait for a short period to observe the result (optional)
+		Thread.sleep(3000);
+	}
+
+	private void openNotesTab() {
+		WebElement notesTab = driver.findElement(By.id("nav-notes-tab"));
 		notesTab.click();
+		new WebDriverWait(driver, 2).until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-notes")));
+	}
 
+	private boolean isElementVisible(By locator) {
+		try {
+			return driver.findElement(locator).isDisplayed();
+		} catch (NoSuchElementException e) {
+			return false;
+		}
+	}
+
+	private void addNewNote(String title, String description) {
 		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 
-		// verify note-tab appears
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-notes")));
-		Assertions.assertTrue(driver.findElement(By.id("nav-notes")).isDisplayed());
-
-		// press on add note button
-		WebElement addNoteButton= driver.findElement(By.id("add-note-button"));
+		// Press on add note button
+		WebElement addNoteButton = driver.findElement(By.id("add-note-button"));
 		addNoteButton.click();
 
 		// Fill out the note
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-title")));
-		WebElement inputTitle = driver.findElement(By.id("note-title"));
-		inputTitle.click();
-		inputTitle.sendKeys("Test Note");
+		driver.findElement(By.id("note-title")).sendKeys(title);
 
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-description")));
-		WebElement inputDescription = driver.findElement(By.id("note-description"));
-		inputDescription.click();
-		inputDescription.sendKeys("testing a note ...");
+		driver.findElement(By.id("note-description")).sendKeys(description);
 
-		// Attempt ot submit the note
+		// Attempt to submit the note
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-note-button")));
-		WebElement submitNote = driver.findElement(By.id("submit-note-button"));
-		submitNote.click();
-
-		// Redirect to home page & press on notes tab
-		redirectToNotesTab();
-
-		// Check if the note appears
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("userTable")));
-		Assertions.assertTrue(driver.findElement(By.id("table-note-title")).getText().contains("Test Note"));
-
-
-		Thread.sleep(3000);
-
+		driver.findElement(By.id("submit-note-button")).click();
 	}
+
+	private boolean isNotePresent(String noteTitle) {
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("userTable")));
+		return driver.findElement(By.id("table-note-title")).getText().contains(noteTitle);
+	}
+
 
 	@Test
 	public void editNote() throws InterruptedException {
 		createNote();
 
+		openEditNoteModal();
+
+		editNoteDescription("Test update note!");
+
+		saveNoteChanges();
+
+		verifyNoteDescription("Test update note!");
+	}
+
+	private void openEditNoteModal() {
 		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
-
-		// open edit modal
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("edit-note-button")));
-		WebElement editNote = driver.findElement(By.id("edit-note-button"));
-		editNote.click();
+		driver.findElement(By.id("edit-note-button")).click();
+	}
 
-		// Edit the note description
+	private void editNoteDescription(String newDescription) {
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-description")));
+
 		WebElement inputDescription = driver.findElement(By.id("note-description"));
 		inputDescription.click();
 		inputDescription.clear();
-		inputDescription.sendKeys("edited description ...");
+		inputDescription.sendKeys(newDescription);
+	}
 
-		// save changes
+	private void saveNoteChanges() {
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-note-button")));
-		WebElement submitNote = driver.findElement(By.id("submit-note-button"));
-		submitNote.click();
+		driver.findElement(By.id("submit-note-button")).click();
 
-		// Redirect to home page & press on notes tab
 		redirectToNotesTab();
+	}
 
-		// Check if the note description has changed
+	private void verifyNoteDescription(String expectedDescription) {
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("userTable")));
-		Assertions.assertTrue(driver.findElement(By.id("table-note-description")).getText().contains("edited description"));
 
-//		Thread.sleep(3000);
-
+		Assertions.assertTrue(driver.findElement(By.id("table-note-description")).getText().contains(expectedDescription),
+				"The note description should be updated.");
 	}
 
 	@Test
 	public void deleteNote() throws InterruptedException {
-
-		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
-
 		createNote();
 
-		// press on delete button
+		handleDeleteNote();
+
+		verifyNoteDeleted();
+	}
+
+	private void handleDeleteNote() {
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("delete-note-button")));
-		WebElement deleteNote = driver.findElement(By.id("delete-note-button"));
-		deleteNote.click();
+		driver.findElement(By.id("delete-note-button")).click();
 
-		// Redirect to home page & press on notes tab
 		redirectToNotesTab();
+	}
 
-		// check note is deleted
-		WebElement notesTable = driver.findElement(By.id("userTable"));
+	private void verifyNoteDeleted() {
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+		WebElement notesTable = webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("userTable")));
 		List<WebElement> notesList = notesTable.findElements(By.tagName("tbody"));
 
-		Assertions.assertEquals(0, notesList.size());
+		Assertions.assertEquals(0, notesList.size(), "The note should be deleted from NOTE table.");
 	}
+
 
 	public void redirectToCredentialsTab(){
 		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
@@ -200,126 +230,103 @@ class CloudStorageApplicationTests {
 
 	@Test
 	public void createCredential() throws InterruptedException {
-		// signup the user
-		doMockSignUp("HuyTQ","Test","HuyTQ","abcd1234");
+		// Sign up & login
+		signUpAndLogin("HuyTQ", "Test", "HuyTQ", "abcd1234");
 
-		// login the user
-		doLogIn("HuyTQ", "abcd1234");
+		openCredentialsTab();
 
-		// go to credentials-tab
-		WebElement credentialsTab= driver.findElement(By.id("nav-credentials-tab"));
-		credentialsTab.click();
+		addCredential("https://www.google.com/", "HuyTQ", "abcd1234");
 
+		verifyCredentialAdded("abcd1234");
+	}
+
+	private void openCredentialsTab() {
+		driver.findElement(By.id("nav-credentials-tab")).click();
+		new WebDriverWait(driver, 2).until(ExpectedConditions.visibilityOfElementLocated(By.id("credentialTable")));
+	}
+
+	private void addCredential(String url, String username, String password) {
 		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
-		String inputCredentialPassword = "abcd1234";
 
-		// press on add credentials button
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-credentials-button")));
-		WebElement addCredentialsButton= driver.findElement(By.id("add-credentials-button"));
-		addCredentialsButton.click();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-credentials-button"))).click();
 
-		// Fill out the credentials
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url")));
-		WebElement inputURL = driver.findElement(By.id("credential-url"));
-		inputURL.click();
-		inputURL.sendKeys("https://www.google.com/");
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url"))).sendKeys(url);
 
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-username")));
-		WebElement inputUsername = driver.findElement(By.id("credential-username"));
-		inputUsername.click();
-		inputUsername.sendKeys("HuyTQ");
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-username"))).sendKeys(username);
 
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-password")));
-		WebElement inputPassword = driver.findElement(By.id("credential-password"));
-		inputPassword.click();
-		inputPassword.sendKeys(inputCredentialPassword);
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-password"))).sendKeys(password);
 
-		// Attempt ot submit the credential
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-credential-button")));
-		WebElement submitNote = driver.findElement(By.id("submit-credential-button"));
-		submitNote.click();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-credential-button"))).click();
 
-		// Redirect to home page & press on credentials tab
 		redirectToCredentialsTab();
+	}
 
-		// Check if the credentials appears
+	private void verifyCredentialAdded(String originalPassword) {
 		WebElement credentialsTable = driver.findElement(By.id("credentialTable"));
 		List<WebElement> credList = credentialsTable.findElements(By.tagName("tbody"));
 
-		Assertions.assertEquals(1, credList.size());
+		Assertions.assertEquals(1, credList.size(), "There should be one credential present.");
 
-
-		// Check if the password shown in table is encrypted or not equal to the original password
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credentialTable")));
-		Assertions.assertNotEquals(driver.findElement(By.id("table-cred-password")).getText(), inputCredentialPassword);
-
-		Thread.sleep(3000);
+		Assertions.assertNotEquals(driver.findElement(By.id("table-cred-password")).getText(), originalPassword, "The displayed password should be encrypted.");
 	}
 
 	@Test
 	public void editCredential() throws InterruptedException {
 		createCredential();
 
+		editCredentialDetails("https://www.youtube.com/");
+
+		verifyCredentialEdited("https://www.youtube.com/");
+	}
+
+	private void editCredentialDetails(String newUrl) {
 		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 
-		// press on edit
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("edit-credential-button")));
-		WebElement editCredentialsButton= driver.findElement(By.id("edit-credential-button"));
-		editCredentialsButton.click();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("edit-credential-button"))).click();
 
-		// make changes
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url")));
-		WebElement inputURL = driver.findElement(By.id("credential-url"));
-		inputURL.click();
-		inputURL.clear();
-		inputURL.sendKeys("https://github.com/tranhuy510");
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url"))).clear();
+		driver.findElement(By.id("credential-url")).sendKeys(newUrl);
 
-		// get the unencrypted pwd
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-password")));
-		String inputPassword = driver.findElement(By.id("credential-password")).getAttribute("value");
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-credential-button"))).click();
 
-
-		// Attempt ot submit the changes in the credential
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-credential-button")));
-		WebElement submitCredential = driver.findElement(By.id("submit-credential-button"));
-		submitCredential.click();
-
-		// Redirect to home page & press on credentials tab
 		redirectToCredentialsTab();
+	}
 
-		// check changes
+	private void verifyCredentialEdited(String expectedUrl) {
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credentialTable")));
-		Assertions.assertTrue(driver.findElement(By.id("table-cred-url")).getText().contains("https://github.com/tranhuy510"));
 
-		// Verify that the viewable password is unencrypted
-		Assertions.assertNotEquals(driver.findElement(By.id("table-cred-password")).getText(), inputPassword);
+		Assertions.assertTrue(driver.findElement(By.id("table-cred-url")).getText().contains(expectedUrl), "The URL should be updated.");
 
-		Thread.sleep(3000);
-
+		String inputPassword = driver.findElement(By.id("credential-password")).getAttribute("value");
+		Assertions.assertNotEquals(driver.findElement(By.id("table-cred-password")).getText(), inputPassword, "The displayed password should be encrypted.");
 	}
 
 	@Test
 	public void deleteCredential() throws InterruptedException {
 		createCredential();
 
+		handleDeleteCredential();
+
+		verifyCredentialDeleted();
+	}
+
+	private void handleDeleteCredential() {
 		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 
-		// press on edit
-		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("delete-credential-button")));
-		WebElement deleteCredentialsButton= driver.findElement(By.id("delete-credential-button"));
-		deleteCredentialsButton.click();
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("delete-credential-button"))).click();
 
-		// Redirect to home page & press on credentials tab
 		redirectToCredentialsTab();
+	}
 
-		// check the credential is deleted
-		WebElement credentialTable = driver.findElement(By.id("credentialTable"));
+	private void verifyCredentialDeleted() {
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+		WebElement credentialTable = webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credentialTable")));
 		List<WebElement> credList = credentialTable.findElements(By.tagName("tbody"));
 
-		Assertions.assertEquals(0, credList.size());
-
-		Thread.sleep(3000);
+		Assertions.assertEquals(0, credList.size(), "The credential should be deleted.");
 	}
+
 
 	@Test
 	public void getLoginPage() {

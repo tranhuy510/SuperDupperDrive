@@ -1,4 +1,4 @@
-package com.udacity.jwdnd.course1.cloudstorage.entities;
+package com.udacity.jwdnd.course1.cloudstorage.entity;
 
 import lombok.Getter;
 import lombok.Setter;

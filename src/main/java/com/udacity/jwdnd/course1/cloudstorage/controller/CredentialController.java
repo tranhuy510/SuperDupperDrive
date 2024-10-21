@@ -1,9 +1,9 @@
 package com.udacity.jwdnd.course1.cloudstorage.controller;
 
-import com.udacity.jwdnd.course1.cloudstorage.entities.Credential;
-import com.udacity.jwdnd.course1.cloudstorage.entities.User;
+import com.udacity.jwdnd.course1.cloudstorage.entity.Credential;
 import com.udacity.jwdnd.course1.cloudstorage.mapper.UserMapper;
-import com.udacity.jwdnd.course1.cloudstorage.services.CredentialService;
+import com.udacity.jwdnd.course1.cloudstorage.service.CredentialService;
+import com.udacity.jwdnd.course1.cloudstorage.util.UserUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -20,32 +20,29 @@ public class CredentialController {
 
     private final CredentialService credentialsService;
     private final UserMapper userMapper;
+    private final UserUtil userUtil;
 
     @PostMapping
-    public String handleAddUpdateCredential(Authentication authentication, Credential credential) {
-        String loggedInUserName = (String) authentication.getPrincipal();
-        User user = userMapper.getUser(loggedInUserName);
-        Integer userId = user.getUserId();
+    public String createOrUpdateCredential(Authentication authentication, Credential credential) {
+        Integer userId = userUtil.getCurrentUserId(authentication);
 
         if (credential.getCredentialId() != null) {
-            credentialsService.editCredentials(credential);
+            credentialsService.updateCredential(credential);
         } else {
-            credentialsService.addCredential(credential, userId);
+            credentialsService.createCredential(credential, userId);
         }
 
         return "redirect:/result?success";
     }
 
     @GetMapping("/delete")
-    public String deleteCredentials(@RequestParam("id") int credentialId, Authentication authentication, RedirectAttributes redirectAttributes){
-        String loggedInUserName = (String) authentication.getPrincipal();
-
-        if(credentialId > 0){
+    public String deleteCredentials(@RequestParam("id") Integer credentialId, RedirectAttributes redirectAttributes){
+        if(credentialId != null && credentialId > 0){
             credentialsService.deleteCredential(credentialId);
             return "redirect:/result?success";
         }
 
-        redirectAttributes.addAttribute("error", "Unable to delete the credentials.");
+        redirectAttributes.addAttribute("error", "Cannot delete credential with credentialId = " + credentialId);
         return "redirect:/result?error";
     }
 }

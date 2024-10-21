@@ -1,11 +1,10 @@
 package com.udacity.jwdnd.course1.cloudstorage.controller;
 
-import com.udacity.jwdnd.course1.cloudstorage.entities.User;
-import com.udacity.jwdnd.course1.cloudstorage.mapper.UserMapper;
-import com.udacity.jwdnd.course1.cloudstorage.services.CredentialService;
-import com.udacity.jwdnd.course1.cloudstorage.services.EncryptionService;
-import com.udacity.jwdnd.course1.cloudstorage.services.FileService;
-import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
+import com.udacity.jwdnd.course1.cloudstorage.service.CredentialService;
+import com.udacity.jwdnd.course1.cloudstorage.service.EncryptionService;
+import com.udacity.jwdnd.course1.cloudstorage.service.FileService;
+import com.udacity.jwdnd.course1.cloudstorage.service.NoteService;
+import com.udacity.jwdnd.course1.cloudstorage.util.UserUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -19,17 +18,16 @@ public class HomeController {
     private final FileService fileService;
     private final NoteService noteService;
     private final CredentialService credentialsService;
-    private final UserMapper userMapper;
     private final EncryptionService encryptionService;
+    private final UserUtil userUtil;
 
     @GetMapping("/home")
-    public String home(Authentication authentication, Model model) {
-        String loggedInUserName = (String) authentication.getPrincipal();
-        User user = userMapper.getUser(loggedInUserName);
+    public String index(Authentication authentication, Model model) {
+        Integer userId = userUtil.getCurrentUserId(authentication);
 
-        model.addAttribute("files", fileService.getAllUploadedFiles(user.getUserId()));
-        model.addAttribute("notes", noteService.getNotes(user.getUserId()));
-        model.addAttribute("credentials", credentialsService.getCredentials(user.getUserId()));
+        model.addAttribute("files", fileService.getAllUploadedFiles(userId));
+        model.addAttribute("notes", noteService.getNotes(userId));
+        model.addAttribute("credentials", credentialsService.getCredentials(userId));
         model.addAttribute("encryptionService", encryptionService);
         return "home";
     }

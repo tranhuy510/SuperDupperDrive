@@ -1,6 +1,6 @@
-package com.udacity.jwdnd.course1.cloudstorage.services;
+package com.udacity.jwdnd.course1.cloudstorage.service;
 
-import com.udacity.jwdnd.course1.cloudstorage.entities.Credential;
+import com.udacity.jwdnd.course1.cloudstorage.entity.Credential;
 import com.udacity.jwdnd.course1.cloudstorage.mapper.CredentialMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ public class CredentialService {
         return credentialMapper.getCredentialsByUserId(userId);
     }
 
-    public void addCredential(Credential credential, int userId){
+    public void createCredential(Credential credential, int userId){
         SecureRandom random = new SecureRandom();
         byte[] key = new byte[16];
         random.nextBytes(key);
@@ -37,11 +37,11 @@ public class CredentialService {
         credentialMapper.insertCredential(newCredentials);
     }
 
-    public int deleteCredential(int credentialId){
-        return credentialMapper.deleteCredential(credentialId);
+    public void deleteCredential(int credentialId){
+        credentialMapper.deleteCredential(credentialId);
     }
 
-    public void editCredentials(Credential credential){
+    public void updateCredential(Credential credential){
         Credential storedCredential = credentialMapper.getCredentialById(credential.getCredentialId());
 
         credential.setKey(storedCredential.getKey());

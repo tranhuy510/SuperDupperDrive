@@ -1,9 +1,8 @@
 package com.udacity.jwdnd.course1.cloudstorage.controller;
 
-import com.udacity.jwdnd.course1.cloudstorage.entities.Note;
-import com.udacity.jwdnd.course1.cloudstorage.entities.User;
-import com.udacity.jwdnd.course1.cloudstorage.mapper.UserMapper;
-import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
+import com.udacity.jwdnd.course1.cloudstorage.entity.Note;
+import com.udacity.jwdnd.course1.cloudstorage.service.NoteService;
+import com.udacity.jwdnd.course1.cloudstorage.util.UserUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -19,31 +18,29 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class NoteController {
 
     private final NoteService noteService;
-    private final UserMapper userMapper;
+    private final UserUtil userUtil;
 
     @PostMapping
-    public String handleAddUpdateNote(Authentication authentication, Note note){
-        String loggedInUserName = (String) authentication.getPrincipal();
-        User user = userMapper.getUser(loggedInUserName);
-        Integer userId = user.getUserId();
+    public String createOrUpdateNot(Authentication authentication, Note note){
+        Integer userId = userUtil.getCurrentUserId(authentication);
 
         if (note.getNoteId() != null) {
             noteService.updateNote(note);
         } else {
-            noteService.addNote(note, userId);
+            noteService.createNote(note, userId);
         }
 
         return "redirect:/result?success";
     }
 
     @GetMapping("/delete")
-    public String deleteFile(@RequestParam("id") int noteId, RedirectAttributes redirectAttributes){
-        if(noteId > 0){
+    public String deleteNote(@RequestParam("id") Integer noteId, RedirectAttributes redirectAttributes) {
+        if (noteId != null && noteId > 0) {
             noteService.deleteNote(noteId);
             return "redirect:/result?success";
         }
 
-        redirectAttributes.addAttribute("error", "Unable to delete the note.");
+        redirectAttributes.addFlashAttribute("error", "Cannot delete note with noteId = " + noteId);
         return "redirect:/result?error";
     }
 }

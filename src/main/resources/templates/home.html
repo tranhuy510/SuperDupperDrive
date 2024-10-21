@@ -54,7 +54,7 @@
                                 <a th:href="@{'/files/download/'+${file.fileId}}" class="btn btn-success">View</a>
                                 <a th:href="@{/files/delete(id=${file.fileId})}"  class="btn btn-danger">Delete</a>
                             </td>
-                            <th scope="row" th:text="${file.filename}">FileName</th>
+                            <th scope="row" th:text="${file.filename}"></th>
                         </tr>
                         </tbody>
                     </table>
@@ -140,9 +140,9 @@
                                         type="button" class="btn btn-success">Edit</button>
                                 <a id="delete-credential-button" th:href="@{/credentials/delete(id=${cred.credentialId})}" class="btn btn-danger">Delete</a>
                             </td>
-                            <th id="table-cred-url" scope="row" th:text="${cred.url}">Example Credential URL</th>
-                            <td th:text="${cred.username}" >Example Credential Username</td>
-                            <td id="table-cred-password" th:text="${cred.password}">Example Credential Password</td>
+                            <th id="table-cred-url" scope="row" th:text="${cred.url}"></th>
+                            <td th:text="${cred.username}" ></td>
+                            <td id="table-cred-password" th:text="${cred.password}"></td>
                         </tr>
                         </tbody>
                     </table>

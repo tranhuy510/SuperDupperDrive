@@ -1,6 +1,6 @@
-package com.udacity.jwdnd.course1.cloudstorage.services;
+package com.udacity.jwdnd.course1.cloudstorage.service;
 
-import com.udacity.jwdnd.course1.cloudstorage.entities.File;
+import com.udacity.jwdnd.course1.cloudstorage.entity.File;
 import com.udacity.jwdnd.course1.cloudstorage.mapper.FileMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -37,8 +37,8 @@ public class FileService {
         return file == null;
     }
 
-    public int deleteFile(int fileId) {
-        return fileMapper.deleteFile(fileId);
+    public void deleteFile(int fileId) {
+        fileMapper.deleteFile(fileId);
     }
 
     public File getFileById(Integer fileId){

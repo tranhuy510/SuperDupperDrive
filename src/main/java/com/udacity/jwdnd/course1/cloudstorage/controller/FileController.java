@@ -1,9 +1,9 @@
 package com.udacity.jwdnd.course1.cloudstorage.controller;
 
-import com.udacity.jwdnd.course1.cloudstorage.entities.File;
-import com.udacity.jwdnd.course1.cloudstorage.entities.User;
+import com.udacity.jwdnd.course1.cloudstorage.entity.File;
 import com.udacity.jwdnd.course1.cloudstorage.mapper.UserMapper;
-import com.udacity.jwdnd.course1.cloudstorage.services.FileService;
+import com.udacity.jwdnd.course1.cloudstorage.service.FileService;
+import com.udacity.jwdnd.course1.cloudstorage.util.UserUtil;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.io.ByteArrayResource;
@@ -29,51 +29,58 @@ public class FileController {
 
     private final FileService fileService;
     private final UserMapper userMapper;
+    private final UserUtil userUtil;
 
     @PostMapping
-    public String handleFileUpload(@RequestParam("fileUpload") MultipartFile fileUpload, Authentication authentication, RedirectAttributes redirectAttributes) throws IOException {
-        String uploadFileError = StringUtils.EMPTY;
+    public String handleFileUpload(@RequestParam("fileUpload") MultipartFile fileUpload,
+                                   Authentication authentication,
+                                   RedirectAttributes redirectAttributes) throws IOException {
 
-        String loggedInUserName = (String) authentication.getPrincipal();
-        User user = userMapper.getUser(loggedInUserName);
+        Integer userId = userUtil.getCurrentUserId(authentication);
 
-        if (fileUpload.isEmpty()) {
-            uploadFileError = "Please select a non-empty file.";
-        }
+        String uploadFileError = validateFileUpload(fileUpload, userId);
 
-        if (fileService.isExistFile(fileUpload.getOriginalFilename(), user.getUserId())) {
-            uploadFileError = "The file already exists.";
-
-        }
-
-        if(uploadFileError.isEmpty()) {
+        if (!uploadFileError.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", uploadFileError);
             return "redirect:/result?error";
         }
 
-        fileService.addFile(fileUpload, user.getUserId());
+        fileService.addFile(fileUpload, userId);
         return "redirect:/result?success";
     }
 
-    @GetMapping("/delete")
-    public String deleteFile(@RequestParam("id") int fileId, Authentication authentication, RedirectAttributes redirectAttributes){
-        String loggedInUserName = (String) authentication.getPrincipal();
+    private String validateFileUpload(MultipartFile fileUpload, Integer userId) {
+        if (fileUpload.isEmpty()) {
+            return "Please select a non-empty file.";
+        }
 
-        if(fileId > 0){
+        if (fileService.isExistFile(fileUpload.getOriginalFilename(), userId)) {
+            return "The file already exists.";
+        }
+
+        return StringUtils.EMPTY;
+    }
+
+    @GetMapping("/delete")
+    public String deleteFile(@RequestParam("id") Integer fileId, RedirectAttributes redirectAttributes) {
+
+        if (fileId != null && fileId > 0) {
             fileService.deleteFile(fileId);
             return "redirect:/result?success";
         }
 
-        redirectAttributes.addAttribute("error", "Unable to delete the file.");
+        redirectAttributes.addFlashAttribute("error", "Cannot delete file with fileId = " + fileId);
         return "redirect:/result?error";
     }
 
     @GetMapping("/download/{fileId}")
-    public ResponseEntity<ByteArrayResource> downloadFile(@PathVariable Integer fileId){
+    public ResponseEntity<ByteArrayResource> downloadFile(@PathVariable Integer fileId) {
         File file = fileService.getFileById(fileId);
+
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(file.getContentType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\""+ file.getFilename()+"\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFilename() + "\"")
                 .body(new ByteArrayResource(file.getFileData()));
     }
 }
+
