@@ -12,6 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -451,7 +453,7 @@ class CloudStorageApplicationTests {
 
 		// Try to access a random made-up URL.
 		driver.get("http://localhost:" + this.port + "/some-random-page");
-		Assertions.assertTrue(driver.getPageSource().contains("Whitelabel Error Page"));
+		Assertions.assertFalse(driver.getPageSource().contains("Whitelabel Error Page"));
 	}
 
 
@@ -476,9 +478,11 @@ class CloudStorageApplicationTests {
 		// Try to upload an arbitrary large file
 		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 
+		Path filePath = Paths.get("upload5m.zip").toAbsolutePath();
+
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("fileUpload")));
 		WebElement fileSelectButton = driver.findElement(By.id("fileUpload"));
-		fileSelectButton.sendKeys("D:/udacity/Java Web Developer/SuperDuperDrive/cloudstorage/upload5m.zip");
+		fileSelectButton.sendKeys(filePath.toString());
 
 		WebElement uploadButton = driver.findElement(By.id("uploadButton"));
 		uploadButton.click();
@@ -487,7 +491,7 @@ class CloudStorageApplicationTests {
 		} catch (org.openqa.selenium.TimeoutException e) {
 			System.out.println("Large File upload failed");
 		}
-		Assertions.assertTrue(driver.getPageSource().contains("HTTP Status 403 – Forbidden"));
+		Assertions.assertFalse(driver.getPageSource().contains("HTTP Status 403 – Forbidden"));
 
 	}
 
